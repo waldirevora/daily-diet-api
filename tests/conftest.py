@@ -4,6 +4,10 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
+import pytest
+from sqlalchemy import text
+
+
 # Localiza o arquivo .env.test na raiz do projeto.
 project_root = Path(__file__).resolve().parents[1]
 settings = dotenv_values(project_root / ".env.test")
@@ -32,3 +36,36 @@ with app.app_context():
         or db.engine.url.username != "daily_diet_test_user"
     ):
         raise RuntimeError("Conexao com banco incorreto.")
+
+
+# Prepara um banco limpo para cada teste CRUD.
+@pytest.fixture
+def client():
+
+    with app.app_context():
+
+        # Confirma que estamos no banco exclusivo de testes.
+        database_url = db.engine.url
+
+        active_database = db.session.execute(
+            text("SELECT DATABASE()")
+        ).scalar()
+
+        if (
+            database_url.database != "daily_diet_test"
+            or database_url.username != "daily_diet_test_user"
+            or active_database != "daily_diet_test"
+        ):
+            raise RuntimeError("Banco de testes incorreto!")
+
+        # Remove os dados anteriores e recria as tabelas.
+        db.session.remove()
+        db.drop_all()
+        db.create_all()
+
+        # Disponibiliza o cliente Flask para executar o teste.
+        yield app.test_client()
+
+        # Limpa as tabelas depois de cada teste.
+        db.session.remove()
+        db.drop_all()
