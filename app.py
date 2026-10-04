@@ -308,6 +308,29 @@ def update_meal(user_id, meal_id):
     }, 200
 
 
+# ROTA: DELETE /users/<user_id>/meals/<meal_id>
+# Exclui uma refeicao pertencente ao usuario informado.
+@app.delete("/users/<int:user_id>/meals/<int:meal_id>")
+def delete_meal(user_id, meal_id):
+
+    # Procura a refeicao pelo seu identificador.
+    meal = db.session.get(Meal, meal_id)
+
+    # Verifica se existe e pertence ao usuario correto.
+    if meal is None or meal.user_id != user_id:
+        return {"error": "Refeicao nao encontrada."}, 404
+
+    # Remove a refeicao e confirma a exclusao no banco.
+    db.session.delete(meal)
+    db.session.commit()
+
+    # Retorna uma confirmacao da exclusao.
+    return {
+        "message": "Refeicao excluida com sucesso.",
+        "id": meal_id
+    }, 200
+
+
 # Inicia o servidor apenas quando este arquivo e executado diretamente.
 # O debug facilita o desenvolvimento e nao deve ser usado em producao.
 if __name__ == '__main__':
