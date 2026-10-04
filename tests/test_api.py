@@ -1,6 +1,7 @@
 
 # Importa nossa aplicacao Flask.
-from app import app
+from app import app, db
+from sqlalchemy import text
 
 
 # TESTE 1: verifica se a rota principal funciona.
@@ -33,3 +34,13 @@ def test_database_connection():
     assert response.status_code == 200
     assert response.get_json()["database"] == "connected"
     assert response.get_json()["result"] == 1
+
+
+# TESTE 4: confirma que estamos utilizando o banco exclusivo de testes.
+def test_database_isolation():
+    with app.app_context():
+        active_db = db.session.execute(
+            text("SELECT DATABASE()")
+        ).scalar()
+
+    assert active_db == "daily_diet_test"
