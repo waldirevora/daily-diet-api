@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from sqlalchemy import text
@@ -61,6 +61,30 @@ def home():
 def health_db():
     resultado = db.session.execute(text("SELECT 1")).scalar()
     return {"database": "connected", "result": resultado}
+
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "Envie um objeto JSON valido."}, 400
+
+    name = data.get("name")
+
+    if not isinstance(name, str) or not name.strip():
+        return {"error": "O nome e obrigatorio."}, 400
+
+    user = User(name=name.strip())
+
+    db.session.add(user)
+    db.session.commit()
+
+    return {
+        "id": user.id,
+        "name": user.name
+    }, 201
+
 
 if __name__ == '__main__':
     app.run(debug=True)
