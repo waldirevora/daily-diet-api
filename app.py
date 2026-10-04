@@ -247,6 +247,67 @@ def get_meal(user_id, meal_id):
     }, 200
 
 
+# ROTA: PUT /users/<user_id>/meals/<meal_id>
+# Atualiza os dados de uma refeicao pertencente ao usuario.
+@app.put("/users/<int:user_id>/meals/<int:meal_id>")
+def update_meal(user_id, meal_id):
+
+    # Procura a refeicao e verifica se pertence ao usuario.
+    meal = db.session.get(Meal, meal_id)
+
+    if meal is None or meal.user_id != user_id:
+        return {"error": "Refeicao nao encontrada."}, 404
+
+    # Recebe os novos dados em formato JSON.
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "Envie um JSON valido."}, 400
+
+    name = data.get("name")
+    description = data.get("description")
+    eaten_at = data.get("eaten_at")
+    is_on_diet = data.get("is_on_diet")
+
+    # Valida os campos obrigatorios.
+    if not isinstance(name, str) or not name.strip():
+        return {"error": "O nome e obrigatorio."}, 400
+
+    if not isinstance(description, str) or not description.strip():
+        return {"error": "A descricao e obrigatoria."}, 400
+
+    if not isinstance(is_on_diet, bool):
+        return {"error": "is_on_diet deve ser true ou false."}, 400
+
+    if not isinstance(eaten_at, str):
+        return {"error": "Informe uma data e hora validas."}, 400
+
+    # Converte a data recebida para datetime.
+    try:
+        meal_date = datetime.fromisoformat(eaten_at)
+    except ValueError:
+        return {"error": "Formato de data e hora invalido."}, 400
+
+    # Atualiza os atributos do objeto existente.
+    meal.name = name.strip()
+    meal.description = description.strip()
+    meal.eaten_at = meal_date
+    meal.is_on_diet = is_on_diet
+
+    # Confirma as alteracoes no MySQL.
+    db.session.commit()
+
+    # Retorna a refeicao atualizada.
+    return {
+        "id": meal.id,
+        "name": meal.name,
+        "description": meal.description,
+        "eaten_at": meal.eaten_at.isoformat(),
+        "is_on_diet": meal.is_on_diet,
+        "user_id": meal.user_id
+    }, 200
+
+
 # Inicia o servidor apenas quando este arquivo e executado diretamente.
 # O debug facilita o desenvolvimento e nao deve ser usado em producao.
 if __name__ == '__main__':
